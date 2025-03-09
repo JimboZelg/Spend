@@ -7,7 +7,8 @@ class SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final balance = context.watch<WalletProvider>().totalBalance;
+    final balance = context.watch<WalletProvider>().totalBalance; // Get the total balance from the wallet provider
+
     
     return Container(
       margin: const EdgeInsets.all(16),
@@ -18,7 +19,8 @@ class SummaryCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Text(
+          const Text( // Title for the summary card
+
             'Resumen',
             style: TextStyle(
               fontSize: 20,

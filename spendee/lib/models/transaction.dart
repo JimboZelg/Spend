@@ -18,6 +18,9 @@ class Transaction extends HiveObject {
   final bool isExpense;
   
   @HiveField(5)
+  final String? goalId; // New field to associate transaction with a goal
+
+  @HiveField(6)
   final String description;
 
   Transaction({
@@ -27,5 +30,6 @@ class Transaction extends HiveObject {
     required this.date,
     required this.isExpense,
     required this.description,
+    this.goalId, // Make goalId optional
   });
 }

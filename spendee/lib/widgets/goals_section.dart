@@ -14,7 +14,8 @@ class GoalsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          const Text( // Title for the goals section
+
             'Objetivos',
             style: TextStyle(
               color: Colors.white,
@@ -23,7 +24,8 @@ class GoalsSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          ...goals.map((goal) => _GoalCard(goal: goal)).toList(),
+          ...goals.map((goal) => _GoalCard(goal: goal)).toList(), // Mapping goals to GoalCard widgets
+
         ],
       ),
     );

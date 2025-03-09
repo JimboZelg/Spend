@@ -5,7 +5,8 @@ import '../models/transaction.dart'; // Ensure the Transaction model is imported
 class WalletProvider with ChangeNotifier {
   double _totalIncome = 0.0;
   double _totalExpenses = 0.0;
-  double _totalGoals = 0.0;
+  double _totalGoals = 0.0; // Total goals amount
+
   String _selectedCurrency = 'MXN'; // Default currency
   final Map<String, double> _conversionRates = {
     'USD': 20.0, // 1 USD = 20 MXN
@@ -13,35 +14,43 @@ class WalletProvider with ChangeNotifier {
     'MXN': 1.0,  // 1 MXN = 1 MXN
   };
 
-  List<Goal> _goals = []; // List to store goals as Goal objects
-  List<Transaction> _transactions = []; // Change to store transactions as Transaction objects
+  final List<Goal> _goals = []; // List to store goals as Goal objects
+  final List<Transaction> _transactions = []; // Change to store transactions as Transaction objects
+
   bool _isDarkMode = false; // Theme state
 
   double get totalIncome => _convertAmount(_totalIncome);
   double get totalExpenses => _convertAmount(_totalExpenses);
   double get totalGoals => _convertAmount(_totalGoals);
   String get selectedCurrency => _selectedCurrency;
-  List<Goal> get goals => _goals; // Getter for goals
+  List<Goal> get goals => _goals; // Getter for goals list
+
   List<Transaction> get transactions => _transactions; // Change to return Transaction objects
   bool get isDarkMode => _isDarkMode; // Getter for theme state
   double get totalBalance => totalIncome - totalExpenses; // Getter for total balance
 
   List<Goal> get completedGoals => _goals.where((goal) => goal.isCompleted).toList(); // Getter for completed goals
 
-  void addNewGoal(String name, double amount, DateTime startDate, DateTime endDate) {
+  void addNewGoal(String name, double amount, DateTime startDate, DateTime endDate) { // Method to add a new goal
+
     // Logic to add a new goal
     _goals.add(Goal(id: UniqueKey().toString(), name: name, currentAmount: 0, targetAmount: amount, frequency: 'Monthly')); // Create a Goal object
     _totalGoals += amount;
     notifyListeners();
   }
 
-  void addTransaction(Transaction transaction) {
+  void addTransaction(Transaction transaction) { // Method to add a transaction
+
     if (transaction.isExpense) {
         _totalExpenses += transaction.amount; // Update total expenses
     } else {
         _totalIncome += transaction.amount; // Update total income
     }
     _transactions.add(transaction); // Logic to add a transaction
+    if (transaction.goalId != null) { // Check if the transaction is related to a goal
+        addToGoal(transaction.goalId!, transaction.amount); // Update the goal with the transaction amount
+    }
+
 
 
     notifyListeners();
@@ -49,10 +58,29 @@ class WalletProvider with ChangeNotifier {
 
   void addToGoal(String goalId, double amount) {
     // Logic to add amount to a specific goal
+    final goal = _goals.firstWhere((g) => g.id == goalId); // Find the goal by ID
+    final updatedAmount = goal.currentAmount + amount; // Calculate the updated amount
+    if (updatedAmount > goal.targetAmount) { // Check if the updated amount exceeds the target
+        _totalIncome += updatedAmount - goal.targetAmount; // Add the excess to total income
+        amount = goal.targetAmount - goal.currentAmount; // Adjust the amount to only reach the target
+    }
+    final transaction = Transaction(
+        id: UniqueKey().toString(),
+        amount: amount,
+        category: goal.name, // Use the name of the goal as the category
+
+        date: DateTime.now(),
+        isExpense: false,
+        description: 'Contribution to goal: ${goal.name}',
+    );
+    _transactions.add(transaction); // Add the transaction to the history
+    final updatedGoal = goal.copyWith(currentAmount: goal.currentAmount + amount); // Create a new goal instance with updated amount
+    _goals[_goals.indexOf(goal)] = updatedGoal; // Replace the old goal with the updated one
     notifyListeners();
   }
 
-  void toggleTheme() {
+  void toggleTheme() { // Method to toggle theme
+
     _isDarkMode = !_isDarkMode; // Toggle theme state
     notifyListeners();
   }

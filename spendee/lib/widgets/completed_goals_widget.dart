@@ -21,13 +21,15 @@ class _CompletedGoalsWidgetState extends State<CompletedGoalsWidget> {
   Widget build(BuildContext context) {
     final walletProvider = context.watch<WalletProvider>();
     List<Goal> completedGoals = walletProvider.completedGoals; // Assuming this exists
-    if (completedGoals.isEmpty) {
-        return Center(child: Text('No completed goals available.'));
+    if (completedGoals.isEmpty) { // Check if there are no completed goals
+        return Center(child: Text('No completed goals available.')); // Display message if no goals
+
     }
 
 
     // Sort the completed goals based on the current sorting order
-    completedGoals.sort((a, b) => widget.isAscending 
+    completedGoals.sort((a, b) => widget.isAscending // Sort completed goals based on the selected order
+
         ? a.targetAmount.compareTo(b.targetAmount) 
         : b.targetAmount.compareTo(a.targetAmount));
 
