@@ -6,7 +6,6 @@ import 'providers/wallet_provider.dart';
 import 'models/transaction_adapter.dart';
 import 'models/goal_adapter.dart';
 
-
 void main() async {
   // Ensure Flutter is initialized
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +13,7 @@ void main() async {
   // Initialize Hive with Flutter
   await Hive.initFlutter();
   
-  // Register our custom adapters
+  // Register our custom adapters only if they are not already registered
   if (!Hive.isAdapterRegistered(0)) {
     Hive.registerAdapter(TransactionAdapter());
   }
@@ -22,7 +21,7 @@ void main() async {
     Hive.registerAdapter(GoalAdapter());
   }
 
-  runApp(const MyApp());
+  runApp(const MyApp()); 
 }
 
 class MyApp extends StatelessWidget {
@@ -31,10 +30,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => WalletProvider(),
+      create: (context) => WalletProvider()..initHive(), // Initialize WalletProvider and call initHive
       child: Consumer<WalletProvider>(
         builder: (context, walletProvider, child) {
-          return MaterialApp(
+          return MaterialApp( 
             title: 'Spendee',
             theme: walletProvider.isDarkMode
                 ? ThemeData.dark() // Use dark theme
