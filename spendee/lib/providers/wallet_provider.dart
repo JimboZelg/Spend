@@ -15,6 +15,7 @@ class WalletProvider with ChangeNotifier {
   };
 
   final List<Goal> _goals = []; // List to store goals as Goal objects
+  final List<Goal> _completedGoals = []; // List to store completed goals
   final List<Transaction> _transactions = []; // Change to store transactions as Transaction objects
 
   bool _isDarkMode = false; // Theme state
@@ -24,12 +25,11 @@ class WalletProvider with ChangeNotifier {
   double get totalGoals => _convertAmount(_totalGoals);
   String get selectedCurrency => _selectedCurrency;
   List<Goal> get goals => _goals; // Getter for goals list
+  List<Goal> get completedGoals => _completedGoals; // Getter for completed goals
 
   List<Transaction> get transactions => _transactions; // Change to return Transaction objects
   bool get isDarkMode => _isDarkMode; // Getter for theme state
   double get totalBalance => totalIncome - totalExpenses; // Getter for total balance
-
-  List<Goal> get completedGoals => _goals.where((goal) => goal.isCompleted).toList(); // Getter for completed goals
 
   void addNewGoal(String name, double amount, DateTime startDate, DateTime endDate) { // Method to add a new goal
 
@@ -74,8 +74,14 @@ class WalletProvider with ChangeNotifier {
         description: 'Contribution to goal: ${goal.name}',
     );
     _transactions.add(transaction); // Add the transaction to the history
+    // Check if the goal is completed after updating
     final updatedGoal = goal.copyWith(currentAmount: goal.currentAmount + amount); // Create a new goal instance with updated amount
-    _goals[_goals.indexOf(goal)] = updatedGoal; // Replace the old goal with the updated one
+    if (updatedGoal.currentAmount >= updatedGoal.targetAmount) {
+        _completedGoals.add(updatedGoal); // Add to completed goals
+        _goals.removeWhere((g) => g.id == goalId); // Remove the goal from active goals
+    } else {
+        _goals[_goals.indexOf(goal)] = updatedGoal; // Replace the old goal with the updated one
+    }
     notifyListeners();
   }
 

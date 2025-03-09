@@ -62,7 +62,7 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
 
   @override
   Widget build(BuildContext context) {
-    if (widget.goal.currentAmount >= widget.goal.targetAmount && !_isDisappearing) {
+    if (widget.goal.isCompleted && !_isDisappearing) {
       setState(() => _isDisappearing = true);
       _controller.forward().then((_) {
         if (mounted) {
@@ -171,6 +171,6 @@ class _GoalCardState extends State<_GoalCard> with SingleTickerProviderStateMixi
       );
     }
 
-    return card;
+    return card; // Ensure a widget is always returned
   }
 }
