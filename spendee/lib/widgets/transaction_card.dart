@@ -40,8 +40,10 @@ class TransactionCard extends StatelessWidget {
                   isExpense: false,
                   description: description,
                 );
-                context.read<WalletProvider>().addTransaction(transaction);
-
+                context.read<WalletProvider>().addTransaction(
+                    description,
+                    transaction,
+                );
 
                 Navigator.pop(context);
               },
@@ -110,8 +112,10 @@ class TransactionCard extends StatelessWidget {
                     isExpense: true,
                     description: descriptionController.text, // Use the description
                   );
-                  context.read<WalletProvider>().addTransaction(transaction);
-
+                  context.read<WalletProvider>().addTransaction(
+                    descriptionController.text,
+                    transaction,
+                  );
 
                 } else {
                   // For income, show goal selection dialog

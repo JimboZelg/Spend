@@ -1,138 +1,213 @@
-import 'package:flutter/material.dart';
-import 'package:hive_ce/hive.dart'; // Importar hive_ce
-import 'package:hive_ce_flutter/hive_flutter.dart'; // Importar hive_ce Flutter
-import '../models/goal.dart'; // Asegurarse de que se importe el modelo Goal
-import '../models/transaction.dart'; // Asegurarse de que se importe el modelo Transaction
+import 'package:flutter/foundation.dart';
+import 'package:hive_ce/hive.dart';
+import '../models/transaction.dart';
+import '../models/goal.dart';
 
 class WalletProvider with ChangeNotifier {
-  // Inicializar Hive
-  Future<void> initHive() async {
-    await Hive.openBox<Goal>('goals'); // Abrir caja de metas
-    await Hive.openBox<Transaction>('transactions'); // Abrir caja de transacciones
-    await loadExistingData(); // Cargar datos existentes de Hive
+  bool _isDarkMode = false; // Added variable to manage theme mode
+
+  bool get isDarkMode => _isDarkMode; // Getter for theme mode
+
+  static const String transactionsBoxName = 'transactions';
+  static const String goalsBoxName = 'goals';
+  static const String completedGoalsBoxName = 'completed_goals';
+  
+  late final Box<Transaction> _transactionsBox; // Marked as final
+  late final Box<Goal> _goalsBox; // Marked as final
+  late final Box<Goal> _completedGoalsBox; 
+  
+  List<Transaction> _transactions = [];
+  List<Goal> _goals = [];
+  List<Goal> _completedGoals = [];
+
+  WalletProvider() {
+    _initHive();
   }
 
-  double _totalIncome = 0.0;
-  double _totalExpenses = 0.0;
-  double _totalGoals = 0.0; // Monto total de metas
-
-  String _selectedCurrency = 'MXN'; // Moneda predeterminada
-  final Map<String, double> _conversionRates = {
-    'USD': 20.0, // 1 USD = 20 MXN
-    'EUR': 22.0, // 1 EUR = 22 MXN
-    'MXN': 1.0,  // 1 MXN = 1 MXN
-  };
-
-  final List<Goal> _goals = []; // Lista para almacenar metas como objetos Goal
-  final List<Goal> _completedGoals = []; // Lista para almacenar metas completadas
-  final List<Transaction> _transactions = []; // Lista para almacenar transacciones como objetos Transaction
-
-  bool _isDarkMode = false; // Estado del tema
-
-  double get totalIncome => _convertAmount(_totalIncome);
-  double get totalExpenses => _convertAmount(_totalExpenses);
-  double get totalGoals => _convertAmount(_totalGoals);
-  String get selectedCurrency => _selectedCurrency;
-  List<Goal> get goals => _goals; // Getter para la lista de metas
-  List<Goal> get completedGoals => _completedGoals; // Getter para las metas completadas
-
-  List<Transaction> get transactions => _transactions; // Cambiar para devolver objetos Transaction
-  bool get isDarkMode => _isDarkMode; // Getter para el estado del tema
-  double get totalBalance => totalIncome - totalExpenses; // Getter para el saldo total
-
-  Future<void> loadExistingData() async {
-    final goalsBox = Hive.box<Goal>('goals');
-    final transactionsBox = Hive.box<Transaction>('transactions');
-
-    _goals.addAll(goalsBox.values.toList()); // Cargar metas existentes
-    _transactions.addAll(transactionsBox.values.toList()); // Cargar transacciones existentes
-
-    // Calcular ingresos, gastos y metas totales a partir de los datos cargados
-    _totalGoals = _goals.fold(0, (sum, goal) => sum + goal.targetAmount);
-    _totalIncome = _transactions.where((t) => !t.isExpense).fold(0, (sum, t) => sum + t.amount);
-    _totalExpenses = _transactions.where((t) => t.isExpense).fold(0, (sum, t) => sum + t.amount);
-
-    notifyListeners(); // Notificar a los oyentes sobre los cambios
-  }
-
-  void addNewGoal(String name, double amount, DateTime startDate, DateTime endDate) { // Método para agregar una nueva meta
-    // Guardar la nueva meta en Hive
-    final goal = Goal(id: UniqueKey().toString(), name: name, currentAmount: 0, targetAmount: amount, frequency: 'Monthly');
-    _goals.add(goal);
-    final goalsBox = Hive.box<Goal>('goals');
-    goalsBox.add(goal);
-
-    _totalGoals += amount;
-    notifyListeners();
-  }
-
-  void addTransaction(Transaction transaction) { // Método para agregar una transacción
-    // Guardar la transacción en Hive
-    final transactionsBox = Hive.box<Transaction>('transactions');
+  Future<void> _initHive() async {
     try {
-        transactionsBox.add(transaction);
+      _transactionsBox = await Hive.openBox<Transaction>(transactionsBoxName);
+      _goalsBox = await Hive.openBox<Goal>(goalsBoxName);
+      _completedGoalsBox = await Hive.openBox<Goal>(completedGoalsBoxName);
+      
+      await loadData();
     } catch (e) {
-        // Manejar el error (por ejemplo, registrarlo o mostrar un mensaje al usuario)
-        print('Error al agregar transacción: $e');
+      // Replace print with a logging mechanism
+      debugPrint('Error initializing Hive: $e');
+      _initializeDefaultData();
     }
+  }
 
-    if (transaction.isExpense) {
-        _totalExpenses += transaction.amount; // Actualizar gastos totales
-    } else {
-        _totalIncome += transaction.amount; // Actualizar ingresos totales
-    }
-    _transactions.add(transaction); // Lógica para agregar una transacción
-    if (transaction.goalId != null) { // Verificar si la transacción está relacionada con una meta
-        addToGoal(transaction.goalId!, transaction.amount); // Actualizar la meta con el monto de la transacción
-    }
+  void _initializeDefaultData() {
+    _goals = [
+      Goal(
+        id: '1',
+        name: 'Vacaciones',
+        currentAmount: 10500,
+        targetAmount: 15000,
+        frequency: 'Mensual',
+      ),
+      Goal(
+        id: '2',
+        name: 'Titulación',
+        currentAmount: 1000,
+        targetAmount: 4000,
+        frequency: 'Semanal',
+      ),
+      Goal(
+        id: '3',
+        name: 'GTA VI',
+        currentAmount: 1260,
+        targetAmount: 1400,
+        frequency: 'Semanal',
+      ),
+    ];
+  }
 
+  Future<void> loadData() async {
+    try {
+      _transactions = _transactionsBox.values.toList();
+      _goals = _goalsBox.values.toList();
+      _completedGoals = _completedGoalsBox.values.toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading data: $e');
+    }
+  }
+
+  Future<void> _saveTransactions() async {
+    try {
+      await _transactionsBox.clear();
+      await _transactionsBox.addAll(_transactions);
+    } catch (e) {
+      debugPrint('Error saving transactions: $e');
+    }
+  }
+
+  Future<void> _saveGoals() async {
+    try {
+      await _goalsBox.clear();
+      await _goalsBox.addAll(_goals);
+    } catch (e) {
+      debugPrint('Error saving goals: $e');
+    }
+  }
+
+  Future<void> _saveCompletedGoals() async {
+    try {
+      await _completedGoalsBox.clear();
+      await _completedGoalsBox.addAll(_completedGoals);
+    } catch (e) {
+      debugPrint('Error saving completed goals: $e');
+    }
+  }
+
+  List<Transaction> get transactions => _transactions;
+  List<Goal> get goals => _goals;
+  List<Goal> get completedGoals => _completedGoals;
+
+  double get totalBalance {
+    return _transactions.fold(0, (sum, transaction) {
+      if (transaction.description != 'goal') {
+        return sum + (transaction.isExpense ? -transaction.amount : transaction.amount);
+      }
+      return sum;
+    });
+  }
+
+  double get totalIncome {
+    return _transactions
+        .where((t) => !t.isExpense && t.description != 'goal')
+        .fold(0, (sum, transaction) => sum + transaction.amount);
+  }
+
+  double get totalExpenses {
+    return _transactions
+        .where((t) => t.isExpense)
+        .fold(0, (sum, transaction) => sum + transaction.amount);
+  }
+
+  Future<void> toggleTheme() async { // Method to toggle theme
+    _isDarkMode = !_isDarkMode;
     notifyListeners();
   }
 
-  void addToGoal(String goalId, double amount) {
-    // Lógica para agregar monto a una meta específica
-    final goal = _goals.firstWhere((g) => g.id == goalId); // Encontrar la meta por ID
-    final updatedAmount = goal.currentAmount + amount; // Calcular el monto actualizado
-    final transaction = Transaction(
-        id: UniqueKey().toString(),
-        amount: amount,
-        category: goal.name, // Usar el nombre de la meta como categoría
-        date: DateTime.now(),
-        isExpense: false,
-        description: 'Contribución a la meta: ${goal.name}',
+  Future<void> addTransaction(String description, Transaction transaction) async {
+
+
+    final newTransaction = Transaction(
+      id: transaction.id,
+      amount: transaction.amount,
+      category: transaction.category,
+      date: transaction.date,
+      isExpense: transaction.isExpense,
+      description: description,
     );
-    _transactions.add(transaction); // Agregar la transacción a la historia
+    _transactions.add(newTransaction);
 
-    // Actualizar el monto actual de la meta y guardarlo de nuevo en Hive
-    final updatedGoal = goal.copyWith(currentAmount: updatedAmount); // Crear una nueva instancia de meta con el monto actualizado
-    final goalsBox = Hive.box<Goal>('goals');
-    
-    // Verificar si la meta se completa después de actualizar
-    if (updatedGoal.currentAmount >= updatedGoal.targetAmount) {
-        // Solo agregar a metas completadas si no está ya allí
-        if (!_completedGoals.any((g) => g.id == updatedGoal.id)) {
-            _completedGoals.add(updatedGoal); // Agregar a metas completadas
-            goalsBox.delete(goalId); // Eliminar la meta de las metas activas en Hive
-        }
-    } else {
-        goalsBox.put(goalId, updatedGoal); // Guardar la meta actualizada de nuevo en Hive
-        _goals[_goals.indexOf(goal)] = updatedGoal; // Reemplazar la antigua meta con la nueva
+    await _saveTransactions();
+    notifyListeners();
+  }
+
+  Future<void> addToGoal(String goalId, double amount) async {
+    final goalIndex = _goals.indexWhere((g) => g.id == goalId);
+    if (goalIndex != -1) {
+      final oldGoal = _goals[goalIndex];
+      final newAmount = oldGoal.currentAmount + amount;
+      
+      if (newAmount >= oldGoal.targetAmount) {
+        final completedGoal = oldGoal.copyWith(
+          currentAmount: newAmount,
+        );
+        _completedGoals.add(completedGoal);
+        _goals.removeAt(goalIndex);
+        await _saveCompletedGoals();
+        await _saveGoals();
+      } else {
+        _goals[goalIndex] = oldGoal.copyWith(
+          currentAmount: newAmount,
+        );
+        await _saveGoals();
+      }
+      
+      await addTransaction(
+        'Meta: ${oldGoal.name}', // Provide a description for the transaction
+        Transaction(
+          id: DateTime.now().toString(),
+          amount: amount,
+          category: 'Meta: ${oldGoal.name}',
+          date: DateTime.now(),
+          isExpense: false,
+          description: 'goal',
+        ),
+      );
+
+      
+      notifyListeners();
     }
-
-    notifyListeners(); // Notificar a los oyentes para actualizar la interfaz de usuario
   }
 
-  void toggleTheme() { // Método para alternar el tema
-    _isDarkMode = !_isDarkMode; // Alternar el estado del tema
+  Future<void> addNewGoal(String name, double targetAmount, DateTime startDate, DateTime endDate) async {
+
+    final newGoal = Goal(
+      id: DateTime.now().toString(),
+      name: name,
+      currentAmount: 0,
+      targetAmount: targetAmount,
+      frequency: 'Personalizado',
+    );
+    
+    _goals.add(newGoal);
+    await _saveGoals();
     notifyListeners();
   }
 
-  void changeCurrency(String currency) {
-    _selectedCurrency = currency;
-    notifyListeners();
-  }
-
-  double _convertAmount(double amount) {
-    return amount / _conversionRates[_selectedCurrency]!;
+  Future<void> updateGoal(Goal goal) async {
+    final index = _goals.indexWhere((g) => g.id == goal.id);
+    if (index != -1) {
+      _goals[index] = goal;
+      await _saveGoals();
+      notifyListeners();
+    }
   }
 }

@@ -3,8 +3,8 @@ import '../models/transaction.dart';
 import '../models/goal.dart';
 
 class WalletProvider with ChangeNotifier {
-  List<Transaction> _transactions = [];
-  List<Goal> _goals = [
+  final List<Transaction> _transactions = [];
+  final List<Goal> _goals = [
     Goal(
       id: '1',
       name: 'Vacaciones',

@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => WalletProvider()..initHive(), // Initialize WalletProvider and call initHive
+      create: (context) => WalletProvider(), // Initialize WalletProvider and call initHive
       child: Consumer<WalletProvider>(
         builder: (context, walletProvider, child) {
           return MaterialApp( 

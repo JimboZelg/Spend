@@ -24,7 +24,7 @@ class GoalsSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          ...goals.map((goal) => _GoalCard(goal: goal)).toList(), // Mapping goals to GoalCard widgets
+          ...goals.map((goal) => _GoalCard(goal: goal)), // Mapping goals to GoalCard widgets
 
         ],
       ),
