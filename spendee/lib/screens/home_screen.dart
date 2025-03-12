@@ -115,7 +115,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         title: const Text(
-          'Spendee',
+          'Spenly',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -146,7 +146,7 @@ class HomeScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    'Spendee',
+                    'Spenly',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,

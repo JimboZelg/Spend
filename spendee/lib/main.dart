@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<WalletProvider>(
         builder: (context, walletProvider, child) {
           return MaterialApp( 
-            title: 'Spendee',
+            title: 'Spenly',
             theme: walletProvider.isDarkMode
                 ? ThemeData.dark() // Use dark theme
                 : ThemeData(
